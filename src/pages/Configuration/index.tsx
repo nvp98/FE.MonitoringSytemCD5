@@ -722,7 +722,7 @@ export default function Configuration() {
             </Form.Item>
           </Space>
 
-          <Divider orientation="left" plain style={{ fontSize: 12, marginTop: 8 }}>Ngưỡng giá trị</Divider>
+          <Divider titlePlacement="left" plain style={{ fontSize: 12, marginTop: 8 }}>Ngưỡng giá trị</Divider>
           <Space size="middle" wrap>
             <Form.Item label="Giá trị định mức" name="giaTriDinhMuc">
               <InputNumber style={{ width: 150 }} />
@@ -735,7 +735,7 @@ export default function Configuration() {
             </Form.Item>
           </Space>
 
-          <Divider orientation="left" plain style={{ fontSize: 12, marginTop: 8 }}>Tag nguồn (SQL Server THONGSOVH_Vevien2)</Divider>
+          <Divider titlePlacement="left" plain style={{ fontSize: 12, marginTop: 8 }}>Tag nguồn (SQL Server THONGSOVH_Vevien2)</Divider>
           <Form.Item label="Tag giá trị thực (_RTM)" name="tagGiaTriHienThi">
             <Input placeholder="VD: TE1548A_RTM" style={{ fontFamily: 'monospace' }} />
           </Form.Item>
