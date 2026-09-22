@@ -256,6 +256,19 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
 }
 .dash-toolbar-sep { flex: 1; }
 
+.dash-area-list {
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-subtle) transparent;
+}
+.dash-area-list::-webkit-scrollbar { width: 8px; }
+.dash-area-list::-webkit-scrollbar-track { background: transparent; }
+.dash-area-list::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 8px; }
+.dash-area-list::-webkit-scrollbar-thumb:hover { background: var(--border-glow); }
+
 /* ─────────────────────────────────────────────
    Area panel (equipment grouping)
 ───────────────────────────────────────────── */

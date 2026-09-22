@@ -95,7 +95,7 @@ export default function History() {
               allowClear
               style={{ width: '100%' }}
               onChange={v => setFilters(f => ({ ...f, areaId: v, equipmentId: undefined }))}
-              options={areas.map(a => ({ label: a.areaName, value: a.id }))}
+              options={areas.map(a => ({ label: a.tenKhuVuc, value: a.id }))}
             />
           </Col>
           <Col xs={24} md={6}>

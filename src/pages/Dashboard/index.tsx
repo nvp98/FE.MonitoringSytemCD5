@@ -192,10 +192,12 @@ export default function Dashboard() {
             </span>
           </div>
 
-          {visibleAreas.length === 0
-            ? <Empty description="Không có thiết bị phù hợp bộ lọc" style={{ marginTop: 60 }} />
-            : visibleAreas.map(area => <AreaPanel key={area.areaId} area={area} />)
-          }
+          <div className="dash-area-list">
+            {visibleAreas.length === 0
+              ? <Empty description="Không có thiết bị phù hợp bộ lọc" style={{ marginTop: 60 }} />
+              : visibleAreas.map(area => <AreaPanel key={area.areaId} area={area} />)
+            }
+          </div>
         </Col>
       </Row>
     </div>
@@ -242,6 +244,7 @@ function getMockData(): DashboardSummary {
       {
         areaId: 1, areaName: 'Bản lược', equipmentCount: 8,
         normalCount: 6, warningCount: 1, criticalCount: 1, offlineCount: 0,
+        lastDataTime: new Date().toISOString(),
         equipments: [
           { equipmentId: 1, equipmentCode: 'BL-001', equipmentName: 'Hộp gió DDD', status: 1, tagCount: 10, normalTagCount: 8, warningTagCount: 2, criticalTagCount: 0 },
           {
@@ -260,6 +263,7 @@ function getMockData(): DashboardSummary {
       {
         areaId: 2, areaName: 'Lò quay', equipmentCount: 6,
         normalCount: 5, warningCount: 1, criticalCount: 0, offlineCount: 0,
+        lastDataTime: new Date(Date.now() - 60000).toISOString(),
         equipments: [
           { equipmentId: 10, equipmentCode: 'LQ-001', equipmentName: 'Nhiệt độ vỏ lò quay', status: 1, tagCount: 1, normalTagCount: 0, warningTagCount: 1, criticalTagCount: 0 },
           { equipmentId: 11, equipmentCode: 'LQ-002', equipmentName: 'Đầu Lò quay', status: 0, tagCount: 1, normalTagCount: 1, warningTagCount: 0, criticalTagCount: 0 },
@@ -269,6 +273,7 @@ function getMockData(): DashboardSummary {
       {
         areaId: 3, areaName: 'Làm mát vòng', equipmentCount: 4,
         normalCount: 4, warningCount: 0, criticalCount: 0, offlineCount: 0,
+        lastDataTime: new Date(Date.now() - 300000).toISOString(),
         equipments: [
           { equipmentId: 20, equipmentCode: 'LMV-001', equipmentName: 'Quạt Làm Mát vòng số 1', status: 0, tagCount: 15, normalTagCount: 15, warningTagCount: 0, criticalTagCount: 0 },
           { equipmentId: 21, equipmentCode: 'LMV-002', equipmentName: 'Quạt Làm Mát vòng số 2', status: 0, tagCount: 15, normalTagCount: 15, warningTagCount: 0, criticalTagCount: 0 },

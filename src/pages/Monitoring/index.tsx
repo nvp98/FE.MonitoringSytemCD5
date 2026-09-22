@@ -10,7 +10,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { equipmentsApi, areasApi, monitoringApi } from '../../services/api';
-import type { Equipment, Area, TagCurrentValue } from '../../types';
+import type { TagCurrentValue } from '../../types';
 import { AlarmLevel } from '../../types';
 import { alarmLevelColor, formatValue } from '../../utils/alarmUtils';
 import dayjs from 'dayjs';
@@ -18,11 +18,29 @@ import dayjs from 'dayjs';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
+// Sentinel cho lựa chọn "Tất cả" trong 2 dropdown filter (không phải id thật).
+const ALL = -1;
+
+// Shape thật trả về từ /api/khu-vuc và /api/thiet-bi (KhuVucDto/ThietBiDto) — khác với
+// type Equipment/Area tiếng Anh trong types/index.ts (vốn dùng cho Dashboard đã adapt).
+interface KhuVucItem {
+  id: number;
+  tenKhuVuc: string;
+}
+
+interface ThietBiItem {
+  id: number;
+  maThietBi: string;
+  tenThietBi: string;
+  tenKhuVuc: string;
+  trangThai: number;
+}
+
 export default function Monitoring() {
   const { equipmentId } = useParams<{ equipmentId: string }>();
   const navigate = useNavigate();
-  const [areas, setAreas] = useState<Area[]>([]);
-  const [equipments, setEquipments] = useState<Equipment[]>([]);
+  const [areas, setAreas] = useState<KhuVucItem[]>([]);
+  const [equipments, setEquipments] = useState<ThietBiItem[]>([]);
   const [selectedArea, setSelectedArea] = useState<number | null>(null);
   const [selectedEquipment, setSelectedEquipment] = useState<number | null>(null);
   const [tagValues, setTagValues] = useState<TagCurrentValue[]>([]);
@@ -34,12 +52,12 @@ export default function Monitoring() {
 
   useEffect(() => {
     if (equipmentId) {
-      setSelectedEquipment(parseInt(equipmentId));
+      setSelectedEquipment(equipmentId === 'all' ? ALL : parseInt(equipmentId));
     }
   }, [equipmentId]);
 
   useEffect(() => {
-    if (selectedArea) {
+    if (selectedArea && selectedArea !== ALL) {
       equipmentsApi.getAll(selectedArea)
         .then(r => setEquipments(r.data))
         .catch(() => setEquipments(getMockEquipments()));
@@ -53,7 +71,9 @@ export default function Monitoring() {
   const loadTagValues = async (id: number) => {
     setLoading(true);
     try {
-      const res = await monitoringApi.getCurrentValues(id);
+      const res = id === ALL
+        ? await monitoringApi.getAllCurrentValues(selectedArea && selectedArea !== ALL ? selectedArea : undefined)
+        : await monitoringApi.getCurrentValues(id);
       setTagValues(res.data);
     } catch {
       setTagValues(getMockTagValues());
@@ -63,13 +83,14 @@ export default function Monitoring() {
   };
 
   useEffect(() => {
-    if (selectedEquipment) {
+    if (selectedEquipment !== null) {
       loadTagValues(selectedEquipment);
       const interval = setInterval(() => loadTagValues(selectedEquipment), 10000);
       return () => clearInterval(interval);
     }
-  }, [selectedEquipment]);
+  }, [selectedEquipment, selectedArea]);
 
+  const isAllEquipment = selectedEquipment === ALL;
   const currentEquipment = equipments.find(e => e.id === selectedEquipment);
 
   const columns: ColumnsType<TagCurrentValue> = [
@@ -158,6 +179,18 @@ export default function Monitoring() {
     },
   ];
 
+  const equipmentColumn: ColumnsType<TagCurrentValue>[number] = {
+    title: 'Thiết bị',
+    dataIndex: 'equipmentName',
+    width: 180,
+    render: (v: string, r: TagCurrentValue) => (
+      <Space direction="vertical" size={0}>
+        <Text strong style={{ fontSize: 12 }}>{v}</Text>
+        <Text type="secondary" style={{ fontSize: 11 }}>{r.areaName}</Text>
+      </Space>
+    ),
+  };
+
   const warningCount = tagValues.filter(t => t.alarmLevel === AlarmLevel.High).length;
   const criticalCount = tagValues.filter(t => t.alarmLevel === AlarmLevel.HighHigh).length;
 
@@ -175,28 +208,37 @@ export default function Monitoring() {
             placeholder="Chọn khu vực"
             allowClear
             style={{ width: 200 }}
-            onChange={v => { setSelectedArea(v); setSelectedEquipment(null); }}
+            value={selectedArea ?? undefined}
+            onChange={v => {
+              setSelectedArea(v ?? null);
+              setSelectedEquipment(prev => (prev === ALL ? ALL : null));
+            }}
           >
-            {areas.map(a => <Option key={a.id} value={a.id}>{a.areaName}</Option>)}
+            <Option value={ALL}><Text strong>Tất cả khu vực</Text></Option>
+            {areas.map(a => <Option key={a.id} value={a.id}>{a.tenKhuVuc}</Option>)}
           </Select>
           <Select
             placeholder="Chọn thiết bị"
             allowClear
             style={{ width: 280 }}
-            value={selectedEquipment}
-            onChange={v => { setSelectedEquipment(v); navigate(`/monitoring/${v}`); }}
+            value={selectedEquipment ?? undefined}
+            onChange={v => {
+              setSelectedEquipment(v ?? null);
+              navigate(v === undefined ? '/monitoring' : v === ALL ? '/monitoring/all' : `/monitoring/${v}`);
+            }}
           >
+            <Option value={ALL}><Text strong>Tất cả thiết bị</Text></Option>
             {equipments.map(e => (
               <Option key={e.id} value={e.id}>
                 <Space>
-                  {e.equipmentName}
-                  {e.status === 2 && <Tag color="error">HH</Tag>}
-                  {e.status === 1 && <Tag color="warning">H</Tag>}
+                  {e.tenThietBi}
+                  {e.trangThai === 2 && <Tag color="error">HH</Tag>}
+                  {e.trangThai === 1 && <Tag color="warning">H</Tag>}
                 </Space>
               </Option>
             ))}
           </Select>
-          {selectedEquipment && (
+          {selectedEquipment !== null && (
             <Button icon={<ReloadOutlined />} onClick={() => loadTagValues(selectedEquipment)}>
               Làm mới
             </Button>
@@ -204,15 +246,21 @@ export default function Monitoring() {
         </Space>
       </Card>
 
-      {selectedEquipment && currentEquipment && (
+      {selectedEquipment !== null && (isAllEquipment || currentEquipment) && (
         <>
           {/* Equipment Summary */}
           <Card style={{ marginBottom: 16 }}>
             <Row gutter={[16, 8]}>
               <Col xs={24} md={12}>
                 <Space direction="vertical" size={0}>
-                  <Title level={5} style={{ margin: 0 }}>{currentEquipment.equipmentName}</Title>
-                  <Text type="secondary">{currentEquipment.equipmentCode} — {currentEquipment.areaName}</Text>
+                  <Title level={5} style={{ margin: 0 }}>
+                    {isAllEquipment ? 'Tất cả thiết bị' : currentEquipment!.tenThietBi}
+                  </Title>
+                  <Text type="secondary">
+                    {isAllEquipment
+                      ? `${new Set(tagValues.map(t => t.equipmentId)).size} thiết bị${selectedArea && selectedArea !== ALL ? ` — ${areas.find(a => a.id === selectedArea)?.tenKhuVuc}` : ''}`
+                      : `${currentEquipment!.maThietBi} — ${currentEquipment!.tenKhuVuc}`}
+                  </Text>
                 </Space>
               </Col>
               <Col xs={8} md={4}>
@@ -238,7 +286,7 @@ export default function Monitoring() {
                     <Spin spinning={loading}>
                       <Table
                         dataSource={tagValues}
-                        columns={columns}
+                        columns={isAllEquipment ? [equipmentColumn, ...columns] : columns}
                         rowKey="tagId"
                         size="middle"
                         pagination={{ pageSize: 20, showTotal: t => `${t} Tag` }}
@@ -262,7 +310,7 @@ export default function Monitoring() {
                       ? <Empty description="Không có cảnh báo" />
                       : <Table
                         dataSource={tagValues.filter(t => t.alarmLevel !== AlarmLevel.Normal)}
-                        columns={columns.slice(0, -1)}
+                        columns={isAllEquipment ? [equipmentColumn, ...columns.slice(0, -1)] : columns.slice(0, -1)}
                         rowKey="tagId"
                         size="middle"
                         pagination={false}
@@ -281,7 +329,7 @@ export default function Monitoring() {
         </>
       )}
 
-      {!selectedEquipment && (
+      {selectedEquipment === null && (
         <Card>
           <Empty description="Chọn thiết bị để xem dữ liệu giám sát" />
         </Card>
@@ -290,18 +338,18 @@ export default function Monitoring() {
   );
 }
 
-function getMockAreas(): Area[] {
+function getMockAreas(): KhuVucItem[] {
   return [
-    { id: 1, areaCode: 'BL', areaName: 'Bản lược', sortOrder: 1, isActive: true, equipmentCount: 8, normalCount: 6, warningCount: 1, criticalCount: 1, offlineCount: 0 },
-    { id: 2, areaCode: 'LQ', areaName: 'Lò quay', sortOrder: 2, isActive: true, equipmentCount: 6, normalCount: 5, warningCount: 1, criticalCount: 0, offlineCount: 0 },
-    { id: 3, areaCode: 'LMV', areaName: 'Làm mát vòng', sortOrder: 3, isActive: true, equipmentCount: 8, normalCount: 8, warningCount: 0, criticalCount: 0, offlineCount: 0 },
+    { id: 1, tenKhuVuc: 'Bản lược' },
+    { id: 2, tenKhuVuc: 'Lò quay' },
+    { id: 3, tenKhuVuc: 'Làm mát vòng' },
   ];
 }
 
-function getMockEquipments(): Equipment[] {
+function getMockEquipments(): ThietBiItem[] {
   return [
-    { id: 1, equipmentCode: 'BL-001', equipmentName: 'Hộp gió DDD', areaId: 1, areaName: 'Bản lược', sortOrder: 1, isActive: true, status: 1, tagCount: 10, normalTagCount: 8, warningTagCount: 2, criticalTagCount: 0 },
-    { id: 2, equipmentCode: 'BL-002', equipmentName: 'Hộp gió UDD', areaId: 1, areaName: 'Bản lược', sortOrder: 2, isActive: true, status: 2, tagCount: 14, normalTagCount: 10, warningTagCount: 2, criticalTagCount: 2 },
+    { id: 1, maThietBi: 'BL-001', tenThietBi: 'Hộp gió DDD', tenKhuVuc: 'Bản lược', trangThai: 1 },
+    { id: 2, maThietBi: 'BL-002', tenThietBi: 'Hộp gió UDD', tenKhuVuc: 'Bản lược', trangThai: 2 },
   ];
 }
 

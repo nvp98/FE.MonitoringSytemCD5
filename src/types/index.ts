@@ -29,18 +29,18 @@ export enum SignalType {
 
 export interface Area {
   id: number;
-  areaCode: string;
-  areaName: string;
-  parentAreaId?: number;
-  sortOrder: number;
-  description?: string;
-  isActive: boolean;
-  equipmentCount: number;
-  normalCount: number;
-  warningCount: number;
-  criticalCount: number;
-  offlineCount: number;
-  children?: Area[];
+  maKhuVuc: string;
+  tenKhuVuc: string;
+  khuVucChaId?: number;
+  thuTu: number;
+  moTa?: string;
+  conHoatDong: boolean;
+  soThietBi: number;
+  soBinhThuong: number;
+  soCanhBao: number;
+  soNghiemTrong: number;
+  soOffline: number;
+  chiNhanh?: Area[];
 }
 
 export interface Equipment {
@@ -100,14 +100,17 @@ export interface TagCurrentValue {
   signalName: string;
   unit?: string;
   value?: number;
-  bitH?: number;
-  bitHH?: number;
   alarmLevel: AlarmLevel;
   highLimit?: number;
   highHighLimit?: number;
   ratedValue?: number;
   timestamp?: string;
   quality: string;
+  /** Chỉ có giá trị khi xem gộp "Tất cả thiết bị". */
+  equipmentId?: number;
+  equipmentCode?: string;
+  equipmentName?: string;
+  areaName?: string;
 }
 
 export interface AlarmCurrent {
@@ -175,6 +178,8 @@ export interface AreaStatus {
   criticalCount: number;
   offlineCount: number;
   equipments: EquipmentStatusItem[];
+  /** Thời điểm mới nhất trong số các Tag của khu vực có dữ liệu — undefined nếu chưa có dữ liệu. */
+  lastDataTime?: string;
 }
 
 export interface EquipmentStatusItem {
